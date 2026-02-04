@@ -15,7 +15,7 @@ export default async function OnboardingPage() {
     .from('goals')
     .select('onboarding_completed')
     .eq('user_id', user.id)
-    .single();
+    .single() as { data: { onboarding_completed: boolean } | null };
 
   if (goals?.onboarding_completed) {
     redirect('/dashboard');

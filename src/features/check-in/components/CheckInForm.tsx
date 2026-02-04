@@ -7,7 +7,7 @@ import {
   performWeeklyCheckIn,
   calculateRequiredWeeklyChange,
 } from '@/lib/algorithm';
-import type { Goals } from '@/lib/supabase/database.types';
+import type { Goals, CheckInInsert, GoalsUpdate, WeightHistoryInsert } from '@/lib/supabase/database.types';
 
 interface CheckInFormProps {
   goals: Goals;
@@ -64,7 +64,7 @@ export function CheckInForm({
       const today = new Date().toISOString().split('T')[0];
 
       // Insert check-in record
-      const { error: checkInError } = await supabase.from('check_ins').insert({
+      const checkInData: CheckInInsert = {
         user_id: user.id,
         weight: currentWeight,
         previous_weight: previousWeight,
@@ -79,31 +79,34 @@ export function CheckInForm({
         new_protein_grams: results.newProteinGrams,
         new_carbs_grams: results.newCarbsGrams,
         new_fat_grams: results.newFatGrams,
-      });
+      };
+      const { error: checkInError } = await supabase.from('check_ins').insert(checkInData as never);
 
       if (checkInError) throw checkInError;
 
       // Update goals with new targets
+      const goalsUpdateData: GoalsUpdate = {
+        current_weight: currentWeight,
+        daily_calories: results.newDailyCalories,
+        protein_grams: results.newProteinGrams,
+        carbs_grams: results.newCarbsGrams,
+        fat_grams: results.newFatGrams,
+        last_check_in: today,
+      };
       const { error: goalsError } = await supabase
         .from('goals')
-        .update({
-          current_weight: currentWeight,
-          daily_calories: results.newDailyCalories,
-          protein_grams: results.newProteinGrams,
-          carbs_grams: results.newCarbsGrams,
-          fat_grams: results.newFatGrams,
-          last_check_in: today,
-        })
+        .update(goalsUpdateData as never)
         .eq('user_id', user.id);
 
       if (goalsError) throw goalsError;
 
       // Log weight
-      await supabase.from('weight_history').upsert({
+      const weightData: WeightHistoryInsert = {
         user_id: user.id,
         weight: currentWeight,
         logged_date: today,
-      });
+      };
+      await supabase.from('weight_history').upsert(weightData as never);
 
       router.push('/dashboard');
     } catch (err) {

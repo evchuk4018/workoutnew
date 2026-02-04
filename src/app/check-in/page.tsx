@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { CheckInForm } from '@/features/check-in';
 import { isCheckInAvailable } from '@/lib/algorithm';
+import type { Goals, WeightHistory } from '@/lib/supabase/database.types';
 
 export default async function CheckInPage() {
   const supabase = await createClient();
@@ -16,7 +17,7 @@ export default async function CheckInPage() {
     .from('goals')
     .select('*')
     .eq('user_id', user.id)
-    .single();
+    .single() as { data: Goals | null; error: Error | null };
 
   if (goalsError || !goals?.onboarding_completed) {
     redirect('/onboarding');
@@ -36,7 +37,7 @@ export default async function CheckInPage() {
     .from('logs')
     .select('calories, log_date')
     .eq('user_id', user.id)
-    .gte('log_date', sevenDaysAgo.toISOString().split('T')[0]);
+    .gte('log_date', sevenDaysAgo.toISOString().split('T')[0]) as { data: { calories: number; log_date: string }[] | null };
 
   // Calculate average daily calories
   const dailyCalories: Record<string, number> = {};
@@ -55,7 +56,7 @@ export default async function CheckInPage() {
     .eq('user_id', user.id)
     .order('logged_date', { ascending: false })
     .limit(1)
-    .single();
+    .single() as { data: { weight: number; logged_date: string } | null };
 
   // Get previous weight (from 7+ days ago)
   const { data: previousWeight } = await supabase
@@ -65,7 +66,7 @@ export default async function CheckInPage() {
     .lt('logged_date', sevenDaysAgo.toISOString().split('T')[0])
     .order('logged_date', { ascending: false })
     .limit(1)
-    .single();
+    .single() as { data: { weight: number } | null };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 py-12 px-4">

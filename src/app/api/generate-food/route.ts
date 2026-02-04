@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateFoodNutrition } from '@/lib/gemini';
+import type { FoodInsert } from '@/lib/supabase/database.types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,19 +23,20 @@ export async function POST(request: NextRequest) {
     const generatedFood = await generateFoodNutrition(foodName);
 
     // Insert into global foods table
+    const foodData: FoodInsert = {
+      name: generatedFood.name,
+      serving_size: generatedFood.serving_size,
+      serving_unit: generatedFood.serving_unit,
+      calories: generatedFood.calories,
+      protein: generatedFood.protein,
+      carbs: generatedFood.carbs,
+      fat: generatedFood.fat,
+      source: 'ai',
+      created_by: user.id,
+    };
     const { data: food, error: insertError } = await supabase
       .from('foods')
-      .insert({
-        name: generatedFood.name,
-        serving_size: generatedFood.serving_size,
-        serving_unit: generatedFood.serving_unit,
-        calories: generatedFood.calories,
-        protein: generatedFood.protein,
-        carbs: generatedFood.carbs,
-        fat: generatedFood.fat,
-        source: 'ai',
-        created_by: user.id,
-      })
+      .insert(foodData as never)
       .select()
       .single();
 

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { DashboardContent } from '@/features/dashboard';
+import type { Goals, Log, WeightHistory } from '@/lib/supabase/database.types';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export default async function DashboardPage() {
     .from('goals')
     .select('*')
     .eq('user_id', user.id)
-    .single();
+    .single() as { data: Goals | null; error: Error | null };
 
   if (goalsError || !goals?.onboarding_completed) {
     redirect('/onboarding');
@@ -31,7 +32,7 @@ export default async function DashboardPage() {
     `)
     .eq('user_id', user.id)
     .eq('log_date', today)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true }) as { data: (Log & { food: { name: string; serving_size: number; serving_unit: string } | null })[] | null };
 
   // Get recent weight entries
   const { data: weightHistory } = await supabase
@@ -39,7 +40,7 @@ export default async function DashboardPage() {
     .select('*')
     .eq('user_id', user.id)
     .order('logged_date', { ascending: false })
-    .limit(7);
+    .limit(7) as { data: WeightHistory[] | null };
 
   return (
     <DashboardContent
